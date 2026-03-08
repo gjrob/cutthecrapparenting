@@ -1,439 +1,499 @@
-'use client';
+'use client'
+import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import LiveStream from './components/LiveStream'
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import ReservationModal from './components/ReservationModal';
-import { OrderButton } from './components/OrderButton';
+const T = {
+  langLabel:    { en: 'CUT THE CRAP PARENTING · WILMINGTON, NC', es: 'CUT THE CRAP PARENTING · WILMINGTON, NC' },
+  navAbout:     { en: 'About',           es: 'Sobre Mí' },
+  navServices:  { en: 'Services',        es: 'Servicios' },
+  navBlueprint: { en: 'Blueprint',       es: 'Blueprint' },
+  navReviews:   { en: 'Reviews',         es: 'Reseñas' },
+  navLive:      { en: 'Watch Live',      es: 'Ver En Vivo' },
+  navBook:      { en: 'Book a Session',  es: 'Reservar' },
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+  heroLabel:    { en: 'Wilmington, NC · Parenting Support', es: 'Wilmington, NC · Apoyo Familiar' },
+  heroH1:       { en: (<>An Intuitive and <em>Holistic Approach</em> for Today's Parents.</>),
+                  es: (<>Un Enfoque Intuitivo y <em>Holístico</em> para los Padres de Hoy.</>) },
+  heroStrong:   { en: "This isn't therapy.", es: 'Esto no es terapia.' },
+  heroSub:      { en: " It's specific solutions for today's parenting problems — delivered with compassion and zero judgment.",
+                  es: ' Son soluciones específicas para los problemas de crianza de hoy, con compasión y sin juicios.' },
+  heroCta1:     { en: 'Book a Free Call',   es: 'Llamada Gratuita' },
+  heroCta2:     { en: 'See How It Works',   es: 'Ver Cómo Funciona' },
 
-/* ─── MENU DATA ─── */
-const MENU_CATEGORIES = [
-  'All', 'Appetizers', 'Soups & Salads', 'Thai & Chinese Stir-Fry', 'Thai Curry',
-  'Chef Specialties', 'Japanese Hibachi', 'Sushi Rolls', 'Specialty Sushi Rolls',
-  'Bento Box', 'Desserts'
-];
+  liveNow:      { en: 'LIVE NOW',           es: 'EN VIVO' },
+  liveTitle:    { en: 'Workshop: Setting Limits Without the Meltdown', es: 'Taller: Poner Límites Sin Crisis' },
+  liveSub:      { en: 'With Denise · Free to watch · Q&A at the end',  es: 'Con Denise · Gratis · Preguntas al final' },
+  watchNow:     { en: 'Watch Now →',        es: 'Ver Ahora →' },
 
-const MENU_ITEMS = [
-  // Appetizers
-  { cat: 'Appetizers', name: 'Pan Fried Dumplings', desc: 'Pan-fried to a crispy golden exterior', price: '$11.23', badge: '#1 Most Liked' },
-  { cat: 'Appetizers', name: 'Appetizer Sampler', desc: 'Shrimp wraps (2), crab wonton (2), steamed dumpling (4), spring rolls (2)', price: '$17.24' },
-  { cat: 'Appetizers', name: 'Gai Satay', desc: 'Thai chicken skewers in yellow curry with cucumber salad & peanut sauce', price: '$11.23' },
-  { cat: 'Appetizers', name: 'Banpei Shrimp', desc: 'Lightly battered shrimp with spicy mayo & sweet chili, topped with scallions', price: '$12.48' },
-  { cat: 'Appetizers', name: 'Crab Wonton', desc: 'Crab, red onions & cream cheese filled wontons', price: '$8.73', badge: '86% liked' },
-  { cat: 'Appetizers', name: 'Shrimp Tempura', desc: '7 crispy pieces', price: '$12.49' },
-  { cat: 'Appetizers', name: 'Steamed Dumplings', desc: 'Pork dumplings with ginger sauce', price: '$11.23', badge: '100% liked' },
-  { cat: 'Appetizers', name: 'Edamame', desc: 'Boiled soybeans in their pods', price: '$11.23' },
+  seeLabel:     { en: 'For Exhausted, Capable Mamas', es: 'Para Mamás Agotadas y Capaces' },
+  seeTitle:     { en: 'I see you, Mama.',              es: 'Te veo, Mamá.' },
+  seeP1:        { en: "You're highly-educated and well-read, but you just can't seem to get out of the trenches.",
+                  es: 'Eres educada y has leído mucho, pero no puedes salir de las trincheras.' },
+  seeP2:        { en: "You're out there trying to heal some generational traumas and soften some cycles after the marathon work of bringing a whole human into the world (or at least your home.)",
+                  es: 'Estás tratando de sanar traumas generacionales y suavizar ciclos después del maratón de traer un ser humano al mundo (o al menos a tu hogar).' },
+  seeEm:        { en: 'You are smart and capable, and you are tired.', es: 'Eres inteligente y capaz, y estás cansada.' },
+  seeStrong:    { en: " But you don't have to go it alone.", es: ' Pero no tienes que hacerlo sola.' },
+  seeCta:       { en: 'Find Out How I Can Help', es: 'Descubre Cómo Puedo Ayudar' },
+  offerLabel:   { en: 'What I Offer', es: 'Lo Que Ofrezco' },
+  offers: [
+    { en: 'In-Home Support (Fairy Godmother Service)', es: 'Apoyo en Casa (Hada Madrina)' },
+    { en: 'Online & In-Person Workshops',              es: 'Talleres Virtuales y Presenciales' },
+    { en: 'Playdate-Style Learning Groups',            es: 'Grupos de Aprendizaje' },
+    { en: 'Private Consultations',                     es: 'Consultas Privadas' },
+    { en: 'Corporate Family Outreach Programs',        es: 'Programas Corporativos Familiares' },
+    { en: 'The Blueprint Online Course',               es: 'El Curso Blueprint Online' },
+  ],
 
-  // Soups & Salads
-  { cat: 'Soups & Salads', name: 'Miso Soup', desc: 'Traditional Japanese miso paste soup', price: '$5.11', badge: '100% liked' },
-  { cat: 'Soups & Salads', name: 'Thom Kha Soup', desc: 'Thai coconut soup with Thai peppers, tomatoes, mushrooms & onions', price: '$8.49' },
-  { cat: 'Soups & Salads', name: 'Hot & Sour Soup', desc: 'Savory balance of spicy and tangy flavors', price: '$5.73', badge: 'Popular' },
-  { cat: 'Soups & Salads', name: 'Larb Gai Salad', desc: 'Spicy Thai chicken salad with basil, rice powder, chili & lime juice', price: '$7.99' },
-  { cat: 'Soups & Salads', name: 'Seafood Noodle Soup', desc: 'Egg noodle soup with crabsticks, shrimp, scallops & veggies', price: '$12.99' },
+  svcLabel:     { en: 'How Does It Work?', es: '¿Cómo Funciona?' },
+  svcTitle:     { en: 'Pick Your Path.',   es: 'Elige Tu Camino.' },
 
-  // Thai & Chinese Stir-Fry
-  { cat: 'Thai & Chinese Stir-Fry', name: 'Pad Thai', desc: 'Rice noodles in sweet tamarind sauce with red onions, tofu & peanuts', price: '$12.99', badge: 'Signature' },
-  { cat: 'Thai & Chinese Stir-Fry', name: 'Pad Kee Mao', desc: 'Drunken noodles with basil, Thai chili, broccoli, carrots & red pepper', price: '$12.99', badge: 'Fan Favorite' },
-  { cat: 'Thai & Chinese Stir-Fry', name: 'Pad See Ewe', desc: 'Wide rice noodles in sweet dark soy with broccoli, eggs & carrots', price: '$12.99' },
-  { cat: 'Thai & Chinese Stir-Fry', name: 'General Tso\'s', desc: 'Sweet & spicy sauce with broccoli, onions & carrots', price: '$11.99' },
-  { cat: 'Thai & Chinese Stir-Fry', name: 'Thai Basil Fried Rice', desc: 'With fresh Thai peppers, basil, onions, eggs & fish sauce', price: '$12.99' },
-  { cat: 'Thai & Chinese Stir-Fry', name: 'Lo Mein', desc: 'Egg noodles with broccoli, carrots, bean sprouts & egg', price: '$12.99' },
-  { cat: 'Thai & Chinese Stir-Fry', name: 'Pineapple Fried Rice', desc: 'Curry powder, red peppers, onions, pineapple, eggs & peanuts', price: '$12.99' },
+  bpLabel:      { en: 'Online Parenting Course',    es: 'Curso de Crianza Online' },
+  bpTitle:      { en: 'The Blueprint.',             es: 'El Blueprint.' },
+  bpBody:       { en: "Everything Denise teaches in person — distilled into a self-paced online course you can start today. Words, techniques, frameworks. Built for busy, exhausted parents who are ready to stop reacting and start responding.",
+                  es: 'Todo lo que Denise enseña en persona — destilado en un curso online a tu ritmo que puedes comenzar hoy.' },
+  bpPeriod:     { en: 'one time',                   es: 'pago único' },
+  bpCta:        { en: 'Enroll in the Blueprint →',  es: 'Inscribirse al Blueprint →' },
+  bpF: [
+    { title: { en: 'Immediate Results',  es: 'Resultados Inmediatos' }, body: { en: 'Most parents use the techniques within hours of their first session.', es: 'La mayoría usa las técnicas en horas después de la primera sesión.' } },
+    { title: { en: 'Self-Paced Access',  es: 'Acceso a Tu Ritmo' },     body: { en: "Watch when your kids are asleep. Rewatch whenever you need a reset.", es: 'Mira cuando tus hijos estén dormidos. Revisa cuando necesites un reinicio.' } },
+    { title: { en: 'No Judgment Zone',  es: 'Zona Libre de Juicios' },  body: { en: "Designed for real families, not perfect ones.", es: 'Diseñado para familias reales, no perfectas.' } },
+    { title: { en: 'Bilingual Content', es: 'Contenido Bilingüe' },     body: { en: 'Full course available in English and Spanish.', es: 'Curso completo disponible en inglés y español.' } },
+  ],
 
-  // Thai Curry
-  { cat: 'Thai Curry', name: 'Red Curry', desc: 'Red Thai chili peppers with coconut milk, bamboo & zucchini. Topped with basil', price: '$12.99', badge: 'Best in Wilmington' },
-  { cat: 'Thai Curry', name: 'Green Curry', desc: 'Green chili peppers with coconut milk, bamboo & zucchini. Fresh basil', price: '$12.99' },
-  { cat: 'Thai Curry', name: 'Masaman Curry', desc: 'Sweet Thai peanut curry with potato, carrots & coconut milk', price: '$12.99', badge: 'Fan Favorite' },
-  { cat: 'Thai Curry', name: 'Penang Curry', desc: 'Yellow & red chili peppers with coconut milk, zucchini & carrots', price: '$12.99' },
+  revLabel:     { en: 'What Parents Are Saying', es: 'Lo Que Dicen los Padres' },
+  revTitle:     { en: 'Real Results.',            es: 'Resultados Reales.' },
 
-  // Chef Specialties
-  { cat: 'Chef Specialties', name: 'Gang Talay', desc: 'Seafood curry with shrimp, scallops, mussels, soft shell crab & calamari', price: '$22.99', badge: 'Premium' },
-  { cat: 'Chef Specialties', name: 'Pla Sam Rod', desc: '3 Flavored Fish — crispy tilapia in sweet, spicy & sour tomato sauce', price: '$13.99' },
-  { cat: 'Chef Specialties', name: 'Sweet Thai Chili Chicken', desc: 'Lightly fried chicken with sweet Thai chili sauce, basil & cilantro', price: '$11.99' },
-  { cat: 'Chef Specialties', name: 'Crab Fried Rice', desc: 'Stir fried rice with crab meat, egg, onions & scallions', price: '$14.99' },
-  { cat: 'Chef Specialties', name: 'Kiss of the Dragon', desc: 'Batter fried chicken in spicy sweet & sour sauce with vegetables', price: '$12.99' },
-  { cat: 'Chef Specialties', name: 'Orange Chicken', desc: 'Lightly fried with mixed vegetables & sweet orange flavored sauce', price: '$12.99' },
+  bookLabel:    { en: 'Ready to Start?',          es: '¿Lista para Empezar?' },
+  bookTitle:    { en: 'Book a Session.',           es: 'Reservar una Sesión.' },
+  bookBody:     { en: "Start with a free 15-minute discovery call. No commitment, no pressure — just a conversation to see if we're a good fit.",
+                  es: 'Comienza con una llamada de descubrimiento gratuita de 15 minutos. Sin compromiso, sin presión.' },
+  formTitle:    { en: 'Book Your Session',         es: 'Reservar tu Sesión' },
+  formSub:      { en: "I'll respond within 24 hours to confirm.", es: 'Te responderé dentro de 24 horas para confirmar.' },
+  fName:        { en: 'First Name',  es: 'Nombre' },
+  fEmail:       { en: 'Email',       es: 'Correo' },
+  fService:     { en: 'Service',     es: 'Servicio' },
+  fMsg:         { en: 'Message (optional)', es: 'Mensaje (opcional)' },
+  fSubmit:      { en: 'Request Session →', es: 'Solicitar Sesión →' },
+  fMsgPlaceholder: { en: "Tell me a little about what's going on...", es: 'Cuéntame un poco sobre lo que está pasando...' },
+  svcOptions: [
+    { en: 'Free Discovery Call (15 min)',              es: 'Llamada Gratuita (15 min)' },
+    { en: 'Private Consultation — $150',               es: 'Consulta Privada — $150' },
+    { en: 'In-Home Support / Fairy Godmother — $350',  es: 'Apoyo en Casa — $350' },
+    { en: 'Workshop (group) — $45–65/person',          es: 'Taller (grupo) — $45–65/persona' },
+    { en: 'Blueprint Course — $197',                   es: 'Curso Blueprint — $197' },
+  ],
 
-  // Japanese Hibachi
-  { cat: 'Japanese Hibachi', name: 'Hibachi Chicken', desc: 'Grilled chicken with fried rice & stir-fried vegetables', price: '$11.99', badge: 'GF Available' },
-  { cat: 'Japanese Hibachi', name: 'Hibachi Steak', desc: 'Grilled steak with fried rice & stir-fried vegetables', price: '$11.95', badge: 'GF Available' },
-  { cat: 'Japanese Hibachi', name: 'Hibachi Steak & Shrimp', desc: 'Combo with fried rice & stir-fried vegetables', price: '$13.95' },
-  { cat: 'Japanese Hibachi', name: 'Hibachi Salmon', desc: 'Grilled salmon with fried rice & stir-fried vegetables', price: '$14.95' },
-  { cat: 'Japanese Hibachi', name: 'Hibachi Steak & Chicken', desc: 'Combo with fried rice & stir-fried vegetables', price: '$11.95' },
+  mailTitle:    { en: 'Food for Thought.',    es: 'Alimento para el Pensamiento.' },
+  mailBody:     { en: 'For thinking parents. No spam — just honest, useful content when I have something worth saying.',
+                  es: 'Para padres reflexivos. Sin spam — solo contenido honesto y útil cuando tengo algo que vale la pena decir.' },
+  mailBtn:      { en: 'I want in', es: 'Me apunto' },
+  mailPlaceholder: { en: 'your@email.com', es: 'tu@correo.com' },
 
-  // Sushi Rolls
-  { cat: 'Sushi Rolls', name: 'California Roll', desc: '', price: '$4.95' },
-  { cat: 'Sushi Rolls', name: 'Spicy Tuna Roll', desc: '', price: '$5.25' },
-  { cat: 'Sushi Rolls', name: 'Rainbow Roll', desc: 'Crab & cucumber topped with salmon, tuna & avocado', price: '$9.95' },
-  { cat: 'Sushi Rolls', name: 'Spider Roll', desc: 'Soft-shell crab, cucumber, avocado, masago & eel sauce', price: '$8.95' },
-  { cat: 'Sushi Rolls', name: 'Shrimp Tempura Roll', desc: '', price: '$5.95' },
-  { cat: 'Sushi Rolls', name: 'Carolina Roll', desc: 'Salmon, tuna & cucumber', price: '$8.95' },
+  footerPrivacy: { en: 'Privacy',  es: 'Privacidad' },
+  footerTerms:   { en: 'Terms',    es: 'Términos' },
+  footerBlog:    { en: 'Blog',     es: 'Blog' },
+  footerBook:    { en: 'Book',     es: 'Reservar' },
+  footerCopy:    { en: '© 2025 · Wilmington, NC · All Rights Reserved', es: '© 2025 · Wilmington, NC · Todos los Derechos Reservados' },
+  builtBy:       { en: 'Built by Blue Ring Holdings LLC', es: 'Desarrollado por Blue Ring Holdings LLC' },
 
-  // Specialty Sushi Rolls
-  { cat: 'Specialty Sushi Rolls', name: 'Why Not Roll', desc: 'Shrimp tempura, cream cheese, cucumber topped with salmon, tuna, avocado & white sauce', price: '$15.00', badge: 'Premium' },
-  { cat: 'Specialty Sushi Rolls', name: 'Vegas Roll', desc: 'Deep fried salmon & cream cheese with spicy mayo & eel sauce', price: '$8.00', badge: 'Fan Favorite' },
-  { cat: 'Specialty Sushi Rolls', name: 'Wilmington Roll', desc: 'Shrimp tempura & cream cheese topped with avocado & spicy mayo', price: '$10.00', badge: 'Local Favorite' },
-  { cat: 'Specialty Sushi Rolls', name: 'Dragon Roll', desc: 'Eel & cucumber topped with avocado, eel sauce & masago', price: '$10.00' },
-  { cat: 'Specialty Sushi Rolls', name: 'UNCW Roll', desc: 'Shrimp tempura & cream cheese with eel sauce, tempura flakes, spicy crab & masago', price: '$10.00', badge: 'Local Favorite' },
-  { cat: 'Specialty Sushi Rolls', name: 'Seahawk Roll', desc: 'Shrimp & avocado with spicy tuna, tempura flakes & masago', price: '$11.00' },
-  { cat: 'Specialty Sushi Rolls', name: 'Sapporo Roll', desc: 'Tuna & cucumber topped with spicy tuna, tempura flakes & avocado', price: '$11.00' },
-  { cat: 'Specialty Sushi Rolls', name: 'Paradise Roll', desc: 'Shrimp tempura & cream cheese topped with mango & spicy tuna', price: '$12.00' },
-
-  // Bento Box
-  { cat: 'Bento Box', name: 'Tempura Bento Box', desc: 'Shrimp & vegetables tempura', price: '$12.99' },
-  { cat: 'Bento Box', name: 'Broccoli Bento', desc: 'Beef or chicken with broccoli', price: '$12.99' },
-  { cat: 'Bento Box', name: 'Sesame Chicken Bento', desc: '', price: '$12.99' },
-  { cat: 'Bento Box', name: 'Hibachi Chicken Bento', desc: '', price: '$11.99' },
-
-  // Desserts
-  { cat: 'Desserts', name: 'Tempura Ice Cream', desc: 'Vanilla ice cream wrapped in pound cake, fried with tempura flour & chocolate', price: '$5.99' },
-  { cat: 'Desserts', name: 'The Sweet Tooth', desc: 'Fried ice cream, fried bananas & golden toast', price: '$10.99' },
-  { cat: 'Desserts', name: 'Golden Toast', desc: 'Crispy wrap with sweet cream cheese & ice cream', price: '$4.99' },
-  { cat: 'Desserts', name: 'Fried Banana', desc: 'Tempura fried banana with chocolate syrup or honey', price: '$2.99' },
-];
-
-const REVIEWS = [
-  { text: 'Best Asian all-around restaurant in town, and has remained consistent.', author: 'TripAdvisor Reviewer', stars: 5, source: 'TripAdvisor' },
-  { text: 'Really great Asian and I love the menu variety!', author: 'Anna B.', stars: 5, source: 'Uber Eats' },
-  { text: 'Best Hibachi I\'ve ever had. Everything was cooked perfectly.', author: 'TripAdvisor Reviewer', stars: 5, source: 'TripAdvisor' },
-  { text: 'The owner is on site most of the time and when it\'s yours you care the most.', author: 'Google Reviewer', stars: 5, source: 'Google' },
-  { text: 'Incredible Gluten-Free options for super sensitive diners. Staff is so knowledgeable!', author: 'Celiac Diner', stars: 5, source: 'FindMeGlutenFree' },
-  { text: 'Kyoto\'s curries will beat Indochine\'s. Staff has always been so friendly.', author: 'Regular Customer', stars: 5, source: 'TripAdvisor' },
-];
-
-const PETAL_CONFIG = [
-  { left: '5%',  duration: '9s',  delay: '0s' },
-  { left: '12%', duration: '12s', delay: '2s' },
-  { left: '23%', duration: '8s',  delay: '4s' },
-  { left: '35%', duration: '14s', delay: '1s' },
-  { left: '47%', duration: '11s', delay: '6s' },
-  { left: '58%', duration: '10s', delay: '3s' },
-  { left: '67%', duration: '13s', delay: '7s' },
-  { left: '76%', duration: '9s',  delay: '5s' },
-  { left: '85%', duration: '15s', delay: '2s' },
-  { left: '93%', duration: '11s', delay: '8s' },
-];
-
-function getCategoryImage(cat: string, name: string): string | null {
-  const lower = name.toLowerCase();
-  if (cat === 'Desserts') return '/ref/dessert.png';
-  if (cat === 'Soups & Salads') return '/ref/soup.png';
-  if (cat === 'Sushi Rolls' || cat === 'Specialty Sushi Rolls') return '/ref/suschi.png';
-  if (lower.includes('fried rice')) return '/ref/friedrice.png';
-  if (lower.includes('chicken') || lower.includes('gai')) return '/ref/chicken.png';
-  return null;
+  location:      { en: 'Wilmington, NC · Serving the Cape Fear Region', es: 'Wilmington, NC · Sirviendo la Región de Cape Fear' },
+  announceText:  { en: 'New Blueprint cohort starts April 1st — spots filling fast! Register now.', es: '¡Nueva cohorte Blueprint comienza el 1 de abril — cupos llenándose rápido! Regístrate ahora.' },
 }
 
-export default function Home() {
-  const [lang, setLang] = useState<'en' | 'es'>('en');
-  const [scrolled, setScrolled] = useState(false);
-  const [activeCat, setActiveCat] = useState('All');
-  const [showReservation, setShowReservation] = useState(false);
-  const [specials, setSpecials] = useState('');
+const SERVICES = [
+  { icon: '🏡',
+    name:  { en: 'In-Home Support', es: 'Apoyo en Casa' },
+    desc:  { en: 'Whether you want to target a specific area or opt for the premier "Fairy Godmother Service" — a fresh set of eyes is the quickest way to get your family back on track.',
+             es: 'Ya sea que quieras enfocarte en un área específica o el servicio "Hada Madrina" — una perspectiva fresca es la forma más rápida de poner a tu familia en camino.' },
+    price: { en: 'From $350 · 3 hours', es: 'Desde $350 · 3 horas' } },
+  { icon: '🎓',
+    name:  { en: 'Workshops', es: 'Talleres' },
+    desc:  { en: 'Online and in-person. Sharpen your skills to better handle normal challenges. Gather friends, neighbors, or co-workers to cover a lot of ground in a little time.',
+             es: 'Virtuales y presenciales. Refuerza tus habilidades para manejar mejor los retos normales.' },
+    price: { en: '$45–65/person', es: '$45–65/persona' } },
+  { icon: '🧸',
+    name:  { en: 'Playdates', es: 'Grupos de Juego' },
+    desc:  { en: "Sometimes the best way to see behavior changes in kids is to teach them new skills too. Hear the exact words and techniques to tackle social & emotional challenges.",
+             es: 'A veces la mejor manera es enseñarles nuevas habilidades también. Aprende las palabras exactas para manejar desafíos sociales y emocionales.' },
+    price: { en: 'Group pricing available', es: 'Precios grupales disponibles' } },
+  { icon: '💻',
+    name:  { en: 'Private Consultation', es: 'Consulta Privada' },
+    desc:  { en: "One-on-one focused session. Bring your specific situation, get specific answers. No fluff, no judgment — just solutions you can use today.",
+             es: 'Sesión enfocada uno a uno. Trae tu situación específica, obtén respuestas específicas. Sin rodeos, sin juicios.' },
+    price: { en: '$150 · 60 min', es: '$150 · 60 min' } },
+  { icon: '📺',
+    name:  { en: 'Live Workshops', es: 'Talleres En Vivo' },
+    desc:  { en: "Denise goes live to teach, answer questions, and connect with parents in real time. Free to watch.",
+             es: 'Denise va en vivo para enseñar, responder preguntas y conectar con padres en tiempo real. Gratis para ver.' },
+    price: { en: 'Free to watch', es: 'Gratis para ver' } },
+  { icon: '✍️',
+    name:  { en: 'Corporate Outreach', es: 'Outreach Corporativo' },
+    desc:  { en: "Support for companies with family-focused employee programs. Speaking, workshops, and ongoing consulting available.",
+             es: 'Apoyo para empresas con programas familiares. Charlas, talleres y consultoría continua.' },
+    price: { en: 'Custom pricing', es: 'Precio personalizado' } },
+]
+
+const REVIEWS = [
+  { body: '"Denise completely changed how I talk to my kids. I learned more in one workshop than in 3 years of reading parenting books."', author: 'Sarah M.', title: 'Mom of 3, Wilmington NC' },
+  { body: '"The Fairy Godmother Service was worth every penny. She came in, observed for an hour, and gave us a specific plan that worked immediately."', author: 'Jessica T.', title: 'Working Mom' },
+  { body: '"I was skeptical but desperate. The Blueprint course gave me language I actually use every single day. Game changer."', author: 'Rachel K.', title: 'New Mom' },
+  { body: '"No judgment, just solutions. Exactly what she promises. Our bedtime routine went from chaos to smooth in one week."', author: 'Amanda L.', title: 'Mom of twins' },
+]
+
+const HERO_IMG = 'https://img1.wsimg.com/isteam/ip/f1fa88ee-a446-4bae-9a8f-d321fded6304/611C8DE4-5529-4AF7-AEFF-2F4ECD09C222.jpeg'
+
+export default function HomePage() {
+  const [lang, setLang] = useState<'en' | 'es'>('en')
+  const [liveActive, setLiveActive] = useState(false)
+  const [streamUrl, setStreamUrl] = useState('')
+  const [streamTitle, setStreamTitle] = useState('')
+  const [announceActive, setAnnounceActive] = useState(true)
+  const [form, setForm] = useState({ name: '', email: '', service: '', message: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [mailEmail, setMailEmail] = useState('')
+  const [mailDone, setMailDone] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', onScroll);
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') }),
+      { threshold: 0.1 }
+    )
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+    return () => obs.disconnect()
+  }, [])
 
-    supabase.from('venue_status').select('specials_text').eq('client_slug', 'kyoto').single()
-      .then(({ data }) => { if (data?.specials_text) setSpecials(data.specials_text) });
+  useEffect(() => {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    supabase
+      .from('venue_status')
+      .select('live_stream_active, stream_url, stream_title, announcement_active')
+      .eq('client_slug', 'cutthecrapparenting')
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        setLiveActive(!!data.live_stream_active)
+        setStreamUrl(data.stream_url ?? '')
+        setStreamTitle(data.stream_title ?? '')
+        setAnnounceActive(data.announcement_active !== false)
+      })
+    const ch = supabase
+      .channel('ctcp')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'venue_status',
+          filter: 'client_slug=eq.cutthecrapparenting' }, p => {
+        setLiveActive(!!p.new.live_stream_active)
+        setStreamUrl(p.new.stream_url ?? '')
+        setStreamTitle(p.new.stream_title ?? '')
+        setAnnounceActive(p.new.announcement_active !== false)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
 
-    const channel = supabase.channel('kyoto-venue')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'venue_status', filter: 'client_slug=eq.kyoto' },
-        ({ new: next }) => setSpecials((next as { specials_text: string }).specials_text || ''))
-      .subscribe();
+  async function handleBook(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitting(true)
+    await fetch('/api/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, language: lang }),
+    })
+    setSubmitted(true)
+    setSubmitting(false)
+  }
 
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const filtered = activeCat === 'All' ? MENU_ITEMS : MENU_ITEMS.filter(i => i.cat === activeCat);
+  async function handleMail(e: React.FormEvent) {
+    e.preventDefault()
+    await fetch('/api/mailing-list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: mailEmail, source: 'homepage', client_slug: 'cutthecrapparenting' }),
+    })
+    setMailDone(true)
+  }
 
   return (
     <>
-      {/* NAV */}
-      <nav className={`nav ${scrolled ? 'scrolled' : ''}`}>
-        <a href="#" className="nav-brand">Kyoto <span>京都</span></a>
-        <ul className="nav-links">
-          <li><a href="#about">About</a></li>
-          <li><a href="#menu">Menu</a></li>
-          <li><a href="#reviews">Reviews</a></li>
-          <li><a href="#info">Hours & Location</a></li>
-          <li>
-            <button onClick={() => setShowReservation(true)} style={{ background: 'none', border: 'none', color: '#b8929a', cursor: 'pointer', fontSize: 'inherit', letterSpacing: '0.05em', fontFamily: 'inherit', fontWeight: 400, padding: 0, transition: 'color 0.3s' }} onMouseEnter={e => (e.currentTarget.style.color = '#e8a0b0')} onMouseLeave={e => (e.currentTarget.style.color = '#b8929a')}>
-              Reservations
-            </button>
-          </li>
-          <li><OrderButton /></li>
-          <li>
-            <button onClick={() => setLang(l => l === 'en' ? 'es' : 'en')} style={{ background: 'none', border: '1px solid rgba(232,160,176,0.3)', color: '#b8929a', cursor: 'pointer', fontSize: '11px', letterSpacing: '0.1em', fontFamily: 'inherit', padding: '4px 10px', borderRadius: '3px' }}>
-              {lang === 'en' ? 'ES' : 'EN'}
-            </button>
-          </li>
-        </ul>
-      </nav>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'LocalBusiness',
+        name: 'Cut the Crap Parenting', telephone: '(910) 612-7885',
+        email: 'Denise@CutTheCrapParenting.com',
+        address: { '@type': 'PostalAddress', addressLocality: 'Wilmington', addressRegion: 'NC', addressCountry: 'US' },
+        url: 'https://cutthecrapparenting.com', areaServed: 'Wilmington, NC',
+      })}} />
 
-      {/* SPECIALS BANNER */}
-      {specials && (
-        <div style={{ background: '#c9a84c', color: '#0d0a0e', textAlign: 'center', padding: '10px 24px', fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em' }}>
-          ✨ {specials}
+      {/* ANNOUNCEMENT */}
+      {announceActive && (
+        <div className="announcement">
+          <div className="pulse" />
+          <span>{T.announceText[lang]}</span>
         </div>
       )}
 
+      {/* LANG BAR */}
+      <div className="lang-bar">
+        <span>{T.langLabel[lang]}</span>
+        <div className="lang-toggle">
+          <button className={`lang-btn${lang === 'en' ? ' active' : ''}`} onClick={() => setLang('en')}>EN</button>
+          <button className={`lang-btn${lang === 'es' ? ' active' : ''}`} onClick={() => setLang('es')}>ES</button>
+        </div>
+      </div>
+
+      {/* HEADER */}
+      <header>
+        <a href="#" className="logo-area">
+          <div className="logo-text">
+            Cut the Crap Parenting
+            <span>Denise · Wilmington NC</span>
+          </div>
+        </a>
+        <nav>
+          <a href="#about">{T.navAbout[lang]}</a>
+          <a href="#services">{T.navServices[lang]}</a>
+          <a href="#blueprint">{T.navBlueprint[lang]}</a>
+          <a href="#reviews">{T.navReviews[lang]}</a>
+          {liveActive && (
+            <a href="#live" className="live-badge">
+              <div className="live-dot" />
+              <span>{T.navLive[lang]}</span>
+            </a>
+          )}
+          <a href="#book" className="book-btn">{T.navBook[lang]}</a>
+        </nav>
+      </header>
+
       {/* HERO */}
-      <section className="hero">
-        {PETAL_CONFIG.map((p, i) => (
-          <div
-            key={i}
-            className="petal"
-            style={{ left: p.left, animationDuration: p.duration, animationDelay: p.delay }}
-          />
-        ))}
-        <div className="hero-content">
-          <div className="hero-kanji">京都</div>
-          <h1>Kyoto <span>Asian Grille</span></h1>
-          <p className="hero-tagline">Nothing in the freezer but the ice cream — since 2012</p>
-          <div className="hero-details">
-            <div className="hero-detail">
-              <span className="hero-detail-label">Location</span>
-              <span className="hero-detail-value">4102 Market Street</span>
-            </div>
-            <div className="hero-detail">
-              <span className="hero-detail-label">Phone</span>
-              <span className="hero-detail-value">(910) 332-3302</span>
-            </div>
-            <div className="hero-detail">
-              <span className="hero-detail-label">Hours</span>
-              <span className="hero-detail-value">Mon–Sat 11am–9:30pm</span>
-            </div>
-          </div>
+      <div className="hero">
+        <div className="hero-text reveal">
+          <div className="hero-label">{T.heroLabel[lang]}</div>
+          <h1 className="hero-headline">{T.heroH1[lang]}</h1>
+          <p className="hero-sub">
+            <strong>{T.heroStrong[lang]}</strong>
+            {T.heroSub[lang]}
+          </p>
           <div className="hero-ctas">
-            <OrderButton />
-            <a href="#menu" className="btn-secondary">
-              View Full Menu
-            </a>
-            <a href="tel:+19103323302" className="btn-secondary">
-              📞 Call Now
-            </a>
-            <button
-              onClick={() => setShowReservation(true)}
-              style={{
-                padding: '0.85rem 2rem',
-                background: 'transparent',
-                border: '1px solid #e8a0b0',
-                borderRadius: '2px',
-                color: '#e8a0b0',
-                fontSize: '0.9rem',
-                fontFamily: 'inherit',
-                fontWeight: 500,
-                cursor: 'pointer',
-                letterSpacing: '0.05em',
-                transition: 'all 0.3s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(232,160,176,0.1)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            >
-              🌸 Reserve a Table
-            </button>
+            <a href="#book" className="btn-primary">{T.heroCta1[lang]}</a>
+            <a href="#services" className="btn-outline">{T.heroCta2[lang]}</a>
           </div>
+        </div>
+        <div className="hero-image">
+          <img
+            src={HERO_IMG}
+            alt="Denise - Cut the Crap Parenting"
+            onError={(e) => {
+              const t = e.target as HTMLImageElement
+              t.style.background = 'linear-gradient(135deg, #C4622D, #7A9E7E)'
+            }}
+          />
+        </div>
+      </div>
+
+      {/* LIVE STRIP */}
+      {liveActive && (
+        <div className="live-strip" id="live">
+          <div className="live-strip-left">
+            <div className="live-badge-lg">
+              <div className="live-dot" />
+              <span>{T.liveNow[lang]}</span>
+            </div>
+            <div>
+              <div className="live-strip-title">{streamTitle || T.liveTitle[lang]}</div>
+              <div className="live-strip-sub">{T.liveSub[lang]}</div>
+            </div>
+          </div>
+          <a href="#live-player" className="watch-btn">{T.watchNow[lang]}</a>
+        </div>
+      )}
+
+      {/* LIVE PLAYER */}
+      {liveActive && streamUrl && (
+        <div id="live-player" style={{ background: 'var(--warm-dark)', padding: '40px 80px' }}>
+          <LiveStream streamUrl={streamUrl} />
+        </div>
+      )}
+
+      {/* I SEE YOU */}
+      <div className="see-you" id="about">
+        <div className="reveal">
+          <div className="section-label">{T.seeLabel[lang]}</div>
+          <h2 className="section-title white">{T.seeTitle[lang]}</h2>
+          <p className="section-body muted">
+            {T.seeP1[lang]}<br /><br />
+            {T.seeP2[lang]}<br /><br />
+            <em style={{ color: 'white', fontStyle: 'normal' }}>{T.seeEm[lang]}</em>
+            <strong style={{ color: 'white' }}>{T.seeStrong[lang]}</strong>
+          </p>
+          <a href="#book" className="see-you-btn">{T.seeCta[lang]}</a>
+        </div>
+        <div className="reveal">
+          <div className="section-label" style={{ color: 'var(--sage-light)' }}>{T.offerLabel[lang]}</div>
+          <ul className="services-list">
+            {T.offers.map((o, i) => <li key={i}>{o[lang]}</li>)}
+          </ul>
+        </div>
+      </div>
+
+      {/* SERVICES */}
+      <section className="services-section" id="services">
+        <div className="section-label reveal">{T.svcLabel[lang]}</div>
+        <h2 className="section-title reveal">{T.svcTitle[lang]}</h2>
+        <div className="services-grid">
+          {SERVICES.map((s, i) => (
+            <div key={i} className="service-card reveal">
+              <div className="service-icon">{s.icon}</div>
+              <div className="service-name">{s.name[lang]}</div>
+              <div className="service-desc">{s.desc[lang]}</div>
+              <div className="service-price">{s.price[lang]}</div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ABOUT */}
-      <section className="about-section" id="about">
-        <div className="about-grid">
-          <div className="about-text">
-            <span className="section-label">Our Story</span>
-            <h2 className="section-title">Where East Meets South</h2>
-            <p>
-              Kyoto Asian Grille brings the vibrant flavors of Japan, Thailand, and China to
-              Wilmington's Market Street corridor. Every dish is crafted from scratch with the freshest
-              ingredients — our chef uses no freezers, no shortcuts, and no compromises.
-            </p>
-            <p>
-              From sizzling hibachi grilled tableside to handcrafted sushi rolls, authentic Thai curries
-              to classic Chinese stir-fry, our extensive menu of 135+ dishes offers something for every
-              palate. We're proudly owner-operated, and our commitment shows in every plate.
-            </p>
-            <p style={{ marginTop: '0.5rem' }}>
-              <span className="gf-badge" style={{ display: 'inline-flex', padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>
-                🌿 Gluten-Free Friendly
-              </span>
-              <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginLeft: '0.5rem' }}>
-                Dedicated GF prep area. Top-rated on FindMeGlutenFree.
-              </span>
-            </p>
+      {/* BLUEPRINT */}
+      <div className="blueprint-section" id="blueprint">
+        <div className="reveal">
+          <div className="section-label" style={{ color: 'rgba(255,255,255,0.6)' }}>{T.bpLabel[lang]}</div>
+          <h2 className="section-title white">{T.bpTitle[lang]}</h2>
+          <p className="section-body" style={{ color: 'rgba(255,255,255,0.8)' }}>{T.bpBody[lang]}</p>
+          <div className="blueprint-price">
+            <span className="bp-amount">$197</span>
+            <span className="bp-period">{T.bpPeriod[lang]}</span>
           </div>
-          <div className="about-stats">
-            <div className="stat-card">
-              <div className="stat-number">4.6</div>
-              <div className="stat-label">Google Rating</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">281+</div>
-              <div className="stat-label">Google Reviews</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">135+</div>
-              <div className="stat-label">Menu Items</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">#86</div>
-              <div className="stat-label">of 582 on TripAdvisor</div>
-            </div>
-          </div>
+          <a href="#book" className="btn-white">{T.bpCta[lang]}</a>
         </div>
-      </section>
-
-      {/* MENU */}
-      <section className="menu-section" id="menu">
-        <div className="menu-container">
-          <div style={{ textAlign: 'center' }}>
-            <span className="section-label">Our Menu</span>
-            <h2 className="section-title" style={{ marginBottom: '0.5rem' }}>Taste the Tradition</h2>
-            <p className="section-subtitle" style={{ margin: '0 auto 2rem' }}>
-              Sushi · Hibachi · Thai · Chinese · 135+ dishes crafted fresh daily
-            </p>
-          </div>
-
-          <div className="menu-categories">
-            {MENU_CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                className={`menu-cat-btn ${activeCat === cat ? 'active' : ''}`}
-                onClick={() => setActiveCat(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="menu-grid">
-            {filtered.map((item, i) => {
-              const itemImg = getCategoryImage(item.cat, item.name);
-              return (
-                <div className="menu-item" key={i}>
-      <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{
-                __html: JSON.stringify({
-                  '@context': 'https://schema.org',
-                  '@type': 'Restaurant',
-                  name: 'Kyoto Asian Grille',
-                  address: {
-                    '@type': 'PostalAddress',
-                    streetAddress: '4102 Market Street',
-                    addressLocality: 'Wilmington',
-                    addressRegion: 'NC',
-                    addressCountry: 'US',
-                  },
-                  telephone: '(910) 332-3302',
-                  url: 'https://kyotoasiangrille.com',
-                })
-              }}
-            />
-
-                  <div className="menu-item-text">
-                    <div className="menu-item-name">{item.name}</div>
-                    {item.desc && <div className="menu-item-desc">{item.desc}</div>}
-                    {item.badge && <span className="menu-item-badge">{item.badge}</span>}
-                  </div>
-                  <div className="menu-item-right">
-                    {itemImg && <img src={itemImg} alt="" className="menu-item-img" />}
-                    <div className="menu-item-price">{item.price}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
-            <OrderButton />
-          </div>
+        <div className="blueprint-features reveal">
+          {T.bpF.map((f, i) => (
+            <div key={i} className="blueprint-feature">
+              <div className="bp-check">✓</div>
+              <div className="bp-text">
+                <strong>{f.title[lang]}</strong>
+                <span>{f.body[lang]}</span>
+              </div>
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
 
       {/* REVIEWS */}
       <section className="reviews-section" id="reviews">
-        <div className="reviews-container">
-          <div style={{ textAlign: 'center' }}>
-            <span className="section-label">Reviews</span>
-            <h2 className="section-title">What Wilmington Says</h2>
-            <div className="divider"><span>◆</span></div>
-          </div>
-
-          <div className="reviews-grid">
-            {REVIEWS.map((r, i) => (
-              <div className="review-card" key={i}>
-                <div className="review-stars">{'★'.repeat(r.stars)}</div>
-                <div className="review-text">"{r.text}"</div>
-                <div className="review-author">{r.author}</div>
-                <div className="review-source">{r.source}</div>
+        <div className="section-label reveal">{T.revLabel[lang]}</div>
+        <h2 className="section-title reveal">{T.revTitle[lang]}</h2>
+        <div className="reviews-grid">
+          {REVIEWS.map((r, i) => (
+            <div key={i} className="review-card reveal">
+              <div className="review-stars">★★★★★</div>
+              <div className="review-body">{r.body}</div>
+              <div className="review-author">
+                <strong>{r.author}</strong>
+                <span>{r.title}</span>
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* BOOKING */}
+      <section className="booking-section" id="book">
+        <div className="booking-grid">
+          <div className="booking-info reveal">
+            <div className="section-label">{T.bookLabel[lang]}</div>
+            <h2 className="section-title">{T.bookTitle[lang]}</h2>
+            <p className="section-body">{T.bookBody[lang]}</p>
+            <div className="contact-items">
+              <div className="contact-item">
+                <div className="contact-icon">📞</div>
+                <a href="tel:9106127885">(910) 612-7885</a>
+              </div>
+              <div className="contact-item">
+                <div className="contact-icon">✉️</div>
+                <a href="mailto:Denise@CutTheCrapParenting.com">Denise@CutTheCrapParenting.com</a>
+              </div>
+              <div className="contact-item">
+                <div className="contact-icon">📍</div>
+                <span>{T.location[lang]}</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="booking-form-card reveal">
+              <div className="form-title">{T.formTitle[lang]}</div>
+              <div className="form-sub">{T.formSub[lang]}</div>
+              {submitted ? (
+                <p style={{ color: 'var(--sage)', fontFamily: "'DM Mono', monospace", fontSize: 14, padding: '20px 0' }}>
+                  ✓ {lang === 'en' ? "Got it! I'll be in touch within 24 hours." : '¡Recibido! Te contactaré en 24 horas.'}
+                </p>
+              ) : (
+                <form onSubmit={handleBook}>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>{T.fName[lang]}</label>
+                      <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Sarah" required />
+                    </div>
+                    <div className="form-group">
+                      <label>{T.fEmail[lang]}</label>
+                      <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="sarah@email.com" required />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>{T.fService[lang]}</label>
+                    <select value={form.service} onChange={e => setForm({...form, service: e.target.value})}>
+                      {T.svcOptions.map((o, i) => <option key={i} value={o.en}>{o[lang]}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>{T.fMsg[lang]}</label>
+                    <textarea value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder={T.fMsgPlaceholder[lang]} />
+                  </div>
+                  <button type="submit" className="btn-primary btn-full" disabled={submitting}>
+                    {submitting ? '...' : T.fSubmit[lang]}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* INFO BAR */}
-      <section className="info-bar" id="info">
-        <div className="info-grid">
-          <div className="info-card">
-            <div className="info-icon">📍</div>
-            <div className="info-label">Location</div>
-            <div className="info-value">
-              <a href="https://maps.google.com/?q=4102+Market+St+Wilmington+NC" target="_blank" rel="noopener">
-                4102 Market Street<br/>Wilmington, NC 28403
-              </a>
-            </div>
-          </div>
-          <div className="info-card">
-            <div className="info-icon">📞</div>
-            <div className="info-label">Phone</div>
-            <div className="info-value">
-              <a href="tel:+19103323302">(910) 332-3302</a>
-            </div>
-          </div>
-          <div className="info-card">
-            <div className="info-icon">🕐</div>
-            <div className="info-label">Lunch</div>
-            <div className="info-value">Mon–Sat 11am–3pm</div>
-          </div>
-          <div className="info-card">
-            <div className="info-icon">🌙</div>
-            <div className="info-label">Dinner</div>
-            <div className="info-value">Mon–Sat 5pm–9:30pm</div>
-          </div>
-          <div className="info-card">
-            <div className="info-icon">🚫</div>
-            <div className="info-label">Closed</div>
-            <div className="info-value">Sunday</div>
-          </div>
-        </div>
-      </section>
-
-      <ReservationModal isOpen={showReservation} onClose={() => setShowReservation(false)} />
+      {/* MAILING */}
+      <div className="mailing-section">
+        <h2 className="section-title white reveal">{T.mailTitle[lang]}</h2>
+        <p className="section-body reveal" style={{ color: 'rgba(187,169,158,0.9)', maxWidth: 600, margin: '0 auto 32px' }}>{T.mailBody[lang]}</p>
+        {mailDone ? (
+          <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#7A9E7E' }}>
+            ✓ {lang === 'en' ? "You're on the list." : 'Ya estás en la lista.'}
+          </p>
+        ) : (
+          <form className="mail-form reveal" onSubmit={handleMail}>
+            <input
+              type="email"
+              value={mailEmail}
+              onChange={e => setMailEmail(e.target.value)}
+              placeholder={T.mailPlaceholder[lang]}
+              required
+            />
+            <button type="submit" className="btn-primary">{T.mailBtn[lang]}</button>
+          </form>
+        )}
+      </div>
 
       {/* FOOTER */}
       <footer>
-        <p>
-          © 2026 Kyoto Asian Grille — 4102 Market Street, Wilmington, NC 28403 —{' '}
-          <a href="tel:+19103323302">(910) 332-3302</a>
-        </p>
-        <p style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>
-          <a href="https://www.instagram.com/kyotoasiangrille" target="_blank" rel="noopener">Instagram</a>
-          {' · '}
-          <a href="https://www.facebook.com/KyotoAsianGrille" target="_blank" rel="noopener">Facebook</a>
-          {' · '}
-          <OrderButton />
-        </p>
+        <div className="footer-logo">
+          Cut the Crap Parenting
+          <span>{T.footerCopy[lang]}</span>
+        </div>
+        <div className="footer-links">
+          <a href="/privacy">{T.footerPrivacy[lang]}</a>
+          <a href="/terms">{T.footerTerms[lang]}</a>
+          <a href="/blog">{T.footerBlog[lang]}</a>
+          <a href="#book">{T.footerBook[lang]}</a>
+        </div>
+        <div className="footer-copy">{T.builtBy[lang]}</div>
       </footer>
     </>
-  );
+  )
 }

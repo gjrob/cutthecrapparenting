@@ -12,7 +12,7 @@ export default function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Welcome to Kyoto Asian Grille! 🥢 I\'m Yuki, your virtual host. Ask me about our menu, specials, gluten-free options, or anything else. How can I help?'
+      content: "Hi! I'm Denise's assistant at Cut the Crap Parenting. 👋 Ask me about services, pricing, the Blueprint course, or booking a session. How can I help?"
     }
   ]);
   const [input, setInput] = useState('');
@@ -68,7 +68,7 @@ export default function ChatBot() {
       setLoading(false);
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: 'Sorry, I\'m having trouble connecting. Please call us at (910) 332-3302 and we\'ll be happy to help!' }
+        { role: 'assistant', content: "Sorry, I'm having trouble connecting. Please call Denise at (910) 612-7885 and she'll be happy to help!" }
       ]);
     }
   };
@@ -93,15 +93,15 @@ export default function ChatBot() {
         onClick={() => setOpen(!open)}
         aria-label={open ? 'Close chat' : 'Open chat'}
       >
-        {open ? '✕' : '🥢'}
+        {open ? '✕' : '💬'}
       </button>
 
       {open && (
         <div className="chatbot-panel">
           <div className="chatbot-header">
-            <div className="chatbot-avatar">🍣</div>
+            <div className="chatbot-avatar">🌿</div>
             <div className="chatbot-header-text">
-              <h4>Yuki — Kyoto Virtual Host</h4>
+              <h4>Denise's Assistant</h4>
               <span><span className="chatbot-online"></span>Online now</span>
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function ChatBot() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Ask about our menu, hours, GF options..."
+              placeholder="Ask about services, pricing, booking..."
               autoFocus
             />
             <button onClick={send} disabled={loading} aria-label="Send">
