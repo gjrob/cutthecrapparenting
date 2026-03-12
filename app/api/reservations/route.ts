@@ -14,11 +14,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  let data: any, error: any
+
+  ({ data, error } = await supabase
     .from('cutthecrapparenting_appointments')
     .insert({ name, email, phone, party_size, date, time, notes, client_slug: 'cutthecrapparenting' })
     .select()
-    .single()
+    .single())
+
+  if (error && error.code === 'PGRST204' && /client_slug/.test(error.message)) {
+    console.warn('client_slug column missing, retrying without it')
+    ({ data, error } = await supabase
+      .from('cutthecrapparenting_appointments')
+      .insert({ name, email, phone, party_size, date, time, notes })
+      .select()
+      .single())
+  }
 
   if (error) {
     console.error('Reservation error:', error)
